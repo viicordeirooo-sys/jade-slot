@@ -156,6 +156,12 @@ const NOMES = {
 const ORDEM = ['p100','p200','p500','p1000','p2000','p5000','ipad','iphone','ouro','bike','caixa','coelho','gire'];
 const ORDEM_SUSTO = ['p1000','p2000','p5000','ipad','iphone','bike','ouro','caixa','coelho'];
 const LIBERAVEIS = ['p500','p1000','p2000','p5000','ipad','iphone','ouro','bike','caixa','coelho'];
+// padrões (mesmos do totem) — o painel nasce preenchido mesmo antes do 1º giro
+const QTD_PADRAO   = {p100:30, p200:10, p500:8, p1000:2, p2000:0, p5000:1,
+                      ipad:0, iphone:0, ouro:0, bike:0, caixa:0, coelho:0, gire:10};
+const SUSTO_PADRAO = {p1000:2, p2000:0, p5000:3, ipad:2, iphone:3, bike:0, ouro:3, caixa:1, coelho:1};
+const VALOR_PADRAO = {p100:100, p200:200, p500:500, p1000:1000, p2000:2000, p5000:5000,
+                      ipad:2000, iphone:7500, ouro:12000, bike:5000, caixa:0, coelho:0, gire:0};
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth(), db = firebase.firestore();
@@ -176,6 +182,7 @@ auth.onAuthStateChanged(u=>{
   if(!u) return;
   document.getElementById('telaLogin').style.display = 'none';
   document.getElementById('painel').style.display = 'block';
+  render();               // nasce preenchido com os padrões
   escutar();
   montarSeletorDia();
 });
@@ -198,12 +205,13 @@ function escutar(){
   });
 }
 function render(){
-  const e = espelho;
+  const e = espelho || {estoque:QTD_PADRAO, sustoQty:SUSTO_PADRAO, valores:VALOR_PADRAO,
+                        saidas:{}, spinsDia:null, itensNaFila:null, sustosNaFila:null, dia:null, ts:null};
   document.getElementById('kGiros').textContent = e.spinsDia ?? '–';
   document.getElementById('kPremios').textContent = e.itensNaFila ?? '–';
   const totSustos = Object.values(e.sustoQty||{}).reduce((a,b)=>a+(b||0),0);
   document.getElementById('kSustos').textContent = (e.sustosNaFila ?? '–') + ' / ' + totSustos;
-  document.getElementById('kDia').textContent = e.dia || '–';
+  document.getElementById('kDia').textContent = e.dia || 'aguardando 1º giro do totem';
   const vivo = e.ts && (Date.now() - e.ts.toMillis() < 90000);
   const p = document.getElementById('kOnline');
   p.textContent = vivo ? 'ONLINE' : 'OFFLINE';
@@ -226,10 +234,11 @@ function render(){
   montarBotoes();
 }
 function montarBotoes(){
-  const e = espelho || {};
+  const e = espelho;
   const bl = document.getElementById('botoesLiberar'); bl.innerHTML = '';
   LIBERAVEIS.forEach(id=>{
-    const resta = ((e.estoque||{})[id]||0) - ((e.saidas||{})[id]||0);
+    // sem espelho ainda: botões ativos (o totem valida e descarta se não tiver estoque)
+    const resta = e ? ((e.estoque||{})[id]||0) - ((e.saidas||{})[id]||0) : 1;
     bl.innerHTML += '<button '+(resta<=0?'disabled':'')+
       ' onclick="armar(\''+id+'\')">'+NOMES[id]+'</button>';
   });
