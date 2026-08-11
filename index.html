@@ -114,14 +114,6 @@
     text-align:center;margin-top:11px;font-size:11px;letter-spacing:.15em;
     text-transform:uppercase;color:rgba(243,238,223,.5);
   }
-  .teste{display:none;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
-  body.modo-teste .teste{display:flex}
-  .teste button{
-    background:none;border:1px dashed rgba(243,238,223,.3);border-radius:8px;
-    color:rgba(243,238,223,.6);font-family:'Jost',sans-serif;font-size:11px;
-    letter-spacing:.12em;padding:7px 12px;cursor:pointer;
-  }
-  .teste button:disabled{opacity:.35;cursor:default}
   .overlay{
     position:fixed;inset:0;display:none;align-items:center;justify-content:center;
     flex-direction:column;gap:14px;text-align:center;padding:30px;z-index:10;
@@ -225,12 +217,6 @@
     </div>
     <button class="btn-girar" id="btn" onclick="girar()">GIRAR</button>
     <div class="contador" id="contador">Giros: 0</div>
-    <div class="teste">
-      <button onclick="girar('__susto')">Testar Perda</button>
-      <button onclick="girar('p100')">Prêmio comum</button>
-      <button onclick="girar('iphone')">Grande prêmio</button>
-      <button onclick="girar('coelho')">Jackpot</button>
-    </div>
   </div>
 </div>
 
@@ -242,11 +228,10 @@
 </div>
 
 <div class="bloqueio" id="bloqueio">
-  <h2>OUTRO TOTEM ATIVO</h2>
-  <p style="font-weight:300;max-width:300px">Outra máquina está com a fila oficial.
-  Pra assumir aqui, digite o PIN — esta máquina ADOTA a fila do Firebase.</p>
-  <input id="pinInput" type="password" maxlength="4" placeholder="PIN">
-  <button onclick="assumir()">ASSUMIR</button>
+  <h2 id="bloqTitulo">TELA BLOQUEADA</h2>
+  <p id="bloqTexto" style="font-weight:300;max-width:300px">Digite o PIN pra liberar esta máquina.</p>
+  <input id="pinInput" type="password" maxlength="12" placeholder="PIN">
+  <button onclick="assumir()">LIBERAR</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -265,8 +250,8 @@ const FIREBASE_CONFIG = {
   appId:             "1:607511506303:web:2831d12739da4b6f693e4a"
 };
 const TOTEM_EMAIL = "totem@jaderodada.com";   // usuário do totem no Firebase Auth
-const TOTEM_SENHA = "Luanova";              // senha do totem
-const PIN = "2026";                            // PIN do ASSUMIR (trocar depois)
+const TOTEM_SENHA = "TROQUE_AQUI_A_SENHA_DO_TOTEM";              // senha do totem
+const PIN = "Luanova";                         // PIN do ASSUMIR
 const HORA_CORTE = 6;                          // o dia vira às 6h da manhã
 
 /* ===== catálogo (mesmos prêmios do Lions, selos chineses) ===== */
@@ -722,7 +707,7 @@ async function tratarLock(){
     const d = doc.exists ? doc.data() : null;
     const vivo = d && d.ts && (Date.now() - d.ts.toMillis() < 90000);
     if(vivo && d.dono !== MEU_ID){
-      document.getElementById('bloqueio').classList.add('ativo');
+      mostrarBloqueio('tomada');
       return;
     }
     await ref.set({dono: MEU_ID, ts: firebase.firestore.FieldValue.serverTimestamp()});
@@ -730,8 +715,31 @@ async function tratarLock(){
     adotarFilaOficial();
   }catch(e){ souDono = true; }
 }
+let modoBloqueio = 'entrada';
+function mostrarBloqueio(modo){
+  modoBloqueio = modo;
+  const t = document.getElementById('bloqTitulo'), x = document.getElementById('bloqTexto'),
+        b = document.querySelector('#bloqueio button');
+  if(modo === 'entrada'){
+    t.textContent = 'TELA BLOQUEADA';
+    x.textContent = 'Digite o PIN pra liberar esta máquina como totem.';
+    b.textContent = 'LIBERAR';
+  } else {
+    t.textContent = 'OUTRO TOTEM ATIVO';
+    x.textContent = 'Outra máquina está com a fila oficial. Pra assumir aqui, digite o PIN — esta máquina adota a fila do Firebase.';
+    b.textContent = 'ASSUMIR';
+  }
+  document.getElementById('pinInput').value = '';
+  document.getElementById('bloqueio').classList.add('ativo');
+}
 async function assumir(){
   if(document.getElementById('pinInput').value !== PIN){ alert('PIN errado'); return; }
+  if(modoBloqueio === 'entrada'){
+    try{ localStorage.setItem('jade-liberado', '1'); }catch(e){}
+    document.getElementById('bloqueio').classList.remove('ativo');
+    ligarFirebase();
+    return;
+  }
   try{
     await db.collection('espelho').doc('lock')
       .set({dono: MEU_ID, ts: firebase.firestore.FieldValue.serverTimestamp()});
@@ -1011,13 +1019,13 @@ document.addEventListener('keydown', e=>{
 $('ov').addEventListener('click', ()=>{ if(jackpotNaTela) fecharResultado(true); });
 
 /* ===== boot ===== */
-if(new URLSearchParams(location.search).get('teste') === '1'){
-  document.body.classList.add('modo-teste');
-}
 carregarEstado();
 montarInicio();
 atualizarUI();
-ligarFirebase();
+let liberado = false;
+try{ liberado = localStorage.getItem('jade-liberado') === '1'; }catch(e){}
+if(liberado){ ligarFirebase(); }
+else { mostrarBloqueio('entrada'); }
 setInterval(()=>{ if(!ocupado && state.dia !== diaChave()){ novoDia(); atualizarUI(); publicarEspelho(); } }, 60000);
 </script>
 </body>
