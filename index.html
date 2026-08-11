@@ -250,7 +250,7 @@ const FIREBASE_CONFIG = {
   appId:             "1:607511506303:web:2831d12739da4b6f693e4a"
 };
 const TOTEM_EMAIL = "totem@jaderodada.com";   // usuário do totem no Firebase Auth
-const TOTEM_SENHA = "Luanova";              // senha do totem
+const TOTEM_SENHA = "Gerencialions#2026";     // senha do totem
 const PIN = "Luanova";                         // PIN do ASSUMIR
 const HORA_CORTE = 6;                          // o dia vira às 6h da manhã
 
@@ -697,7 +697,12 @@ async function ligarFirebase(){
     escutarComandos();
     setInterval(batimento, 30000);
     publicarEspelho();
-  }catch(e){ console.warn('Firebase off:', e.message); pilula(false); souDono = true; }
+  }catch(e){
+    console.warn('Firebase off:', e.message);
+    pilula(false); souDono = true;
+    alert('TOTEM OFFLINE — o jogo funciona, mas não está gravando.\n\nMotivo: ' + e.message +
+          '\n\nSe aparecer "password" ou "credential": a senha do totem no arquivo está errada.');
+  }
 }
 const MEU_ID = 'T' + Math.random().toString(36).slice(2,10);
 async function tratarLock(){
@@ -781,7 +786,12 @@ function publicarEspelho(){
         itensNaFila: itensNaFila(), sustosNaFila: sustosNaFila(),
         ts: firebase.firestore.FieldValue.serverTimestamp()
       });
-    }catch(e){}
+    }catch(e){
+      if(!window.__avisouEspelho){
+        window.__avisouEspelho = true;
+        alert('TOTEM OFFLINE — logou no Firebase mas a gravação falhou.\n\nMotivo: ' + e.message);
+      }
+    }
   }, 800);
 }
 function logGiro(tipo, id, valor){
