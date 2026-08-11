@@ -247,11 +247,17 @@ function montarBotoes(){
     bs.innerHTML += '<button onclick="armarSusto(\''+id+'\')">quase '+NOMES[id]+'</button>';
   });
 }
+function quem(){
+  return auth.currentUser ? auth.currentUser.email : 'DESLOGADO';
+}
 async function comando(obj){
   const ref = db.collection('controle').doc('comandos');
-  const doc = await ref.get();
+  let doc;
+  try{ doc = await ref.get(); }
+  catch(e){ throw new Error('LER controle falhou (logado como: '+quem()+'): '+e.message); }
   const seq = (doc.exists && doc.data().seq || 0) + 1;
-  await ref.set({...obj, seq, ts: firebase.firestore.FieldValue.serverTimestamp()});
+  try{ await ref.set({...obj, seq, ts: firebase.firestore.FieldValue.serverTimestamp()}); }
+  catch(e){ throw new Error('GRAVAR controle falhou (logado como: '+quem()+'): '+e.message); }
 }
 async function salvarConfig(){
   const estoque = {}, valores = {}, sustoQty = {};
