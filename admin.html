@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JADE — Painel</title>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Jost:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --laca:#0C0A09; --laca2:#161210; --jade:#2E8B6A; --jade-claro:#8FDCB4;
+    --ouro:#E9C15C; --ouro-escuro:#B08A32; --cinabrio:#B3312B; --lua:#F3EEDF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--laca);color:var(--lua);font-family:'Jost',sans-serif;
+       min-height:100vh;padding:20px 14px 60px;display:flex;justify-content:center}
+  .folha{width:100%;max-width:560px}
+  h1{font-family:'Marcellus',serif;color:var(--ouro);letter-spacing:.14em;font-size:22px;
+     text-align:center;margin-bottom:4px}
+  .sub{text-align:center;font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+       color:rgba(243,238,223,.5);margin-bottom:18px}
+  .card{background:var(--laca2);border:1px solid rgba(233,193,92,.22);border-radius:12px;
+        padding:16px;margin-bottom:14px}
+  .card h2{font-family:'Marcellus',serif;font-size:13px;letter-spacing:.22em;
+           text-transform:uppercase;color:var(--jade-claro);margin-bottom:12px}
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi{background:var(--laca2);border:1px solid rgba(233,193,92,.22);border-radius:12px;
+       padding:12px;text-align:center}
+  .kpi .n{font-family:'Marcellus',serif;font-size:26px;color:var(--ouro)}
+  .kpi .t{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(243,238,223,.5)}
+  .pilula{display:inline-block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+          padding:4px 12px;border-radius:999px;border:1px solid rgba(143,220,180,.4);color:var(--jade-claro)}
+  .pilula.off{border-color:rgba(179,49,43,.5);color:#e58a84}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:6px 4px;text-align:left;border-bottom:1px solid rgba(243,238,223,.08)}
+  th{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(243,238,223,.45);font-weight:400}
+  td input{width:64px;background:var(--laca);border:1px solid rgba(233,193,92,.3);border-radius:6px;
+           color:var(--lua);padding:5px 7px;font-size:13px;text-align:center}
+  .btn{display:block;width:100%;border:none;border-radius:9px;cursor:pointer;padding:13px;
+       font-family:'Marcellus',serif;font-size:14px;letter-spacing:.2em;margin-top:10px;
+       background:linear-gradient(180deg,#f4d783,var(--ouro) 55%,var(--ouro-escuro));color:var(--laca)}
+  .btn.ghost{background:none;border:1px solid rgba(233,193,92,.4);color:var(--ouro)}
+  .btn.perigo{background:linear-gradient(180deg,#d05049,var(--cinabrio));color:var(--lua)}
+  .grade-botoes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .grade-botoes button{border:1px solid rgba(233,193,92,.4);background:none;color:var(--ouro);
+       border-radius:8px;padding:11px 4px;cursor:pointer;font-family:'Jost',sans-serif;
+       font-size:11.5px;letter-spacing:.08em}
+  .grade-botoes button:disabled{opacity:.3;cursor:default}
+  .grade-botoes.sustos button{border-color:rgba(179,49,43,.5);color:#e58a84}
+  .giro-linha{display:flex;justify-content:space-between;font-size:12.5px;
+              padding:5px 0;border-bottom:1px solid rgba(243,238,223,.06)}
+  .giro-linha .q{color:rgba(243,238,223,.45)}
+  .aviso{font-size:11px;color:rgba(243,238,223,.45);line-height:1.5;margin-top:8px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+         background:var(--jade);color:var(--lua);padding:10px 22px;border-radius:999px;
+         font-size:13px;display:none;z-index:50}
+  #telaLogin{display:flex;flex-direction:column;gap:12px;max-width:320px;margin:60px auto}
+  #telaLogin input{background:var(--laca2);border:1px solid rgba(233,193,92,.3);border-radius:8px;
+                   color:var(--lua);padding:12px;font-size:14px}
+  #painel{display:none}
+  #modalFecho{position:fixed;inset:0;background:rgba(12,10,9,.95);z-index:40;display:none;
+              align-items:flex-start;justify-content:center;padding:30px 14px;overflow:auto}
+  #modalFecho .card{max-width:560px;width:100%}
+</style>
+</head>
+<body>
+<div class="folha">
+  <h1>玉兔 JADE — PAINEL</h1>
+  <p class="sub">A Rodada da Lua · Admin</p>
+
+  <div id="telaLogin">
+    <input id="email" type="email" placeholder="E-mail do admin">
+    <input id="senha" type="password" placeholder="Senha">
+    <button class="btn" onclick="entrar()">ENTRAR</button>
+  </div>
+
+  <div id="painel">
+    <div class="kpis">
+      <div class="kpi"><div class="n" id="kGiros">–</div><div class="t">Giros no dia</div></div>
+      <div class="kpi"><div class="n" id="kPremios">–</div><div class="t">Prêmios restantes</div></div>
+      <div class="kpi"><div class="n" id="kSustos">–</div><div class="t">Sustos na fila</div></div>
+      <div class="kpi"><div class="n"><span class="pilula off" id="kOnline">OFFLINE</span></div>
+        <div class="t" id="kDia">–</div></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2>Estoque do dia</h2>
+      <table>
+        <tr><th>Prêmio</th><th>Qtd</th><th>Saíram</th><th>Valor un. R$</th></tr>
+        <tbody id="tEstoque"></tbody>
+      </table>
+      <h2 style="margin-top:16px">Sustos do dia (quase ganhou)</h2>
+      <table>
+        <tr><th>Alvo</th><th>Qtd</th></tr>
+        <tbody id="tSustos"></tbody>
+      </table>
+      <button class="btn" onclick="salvarConfig()">SALVAR ALTERAÇÕES</button>
+      <p class="aviso">Salvar aplica na hora: preserva o que já saiu no dia e remonta a fila.
+      Prêmios de botão (iPad, iPhone, Ouro, Bike, Caixa, Jackpot) NÃO entram no sorteio —
+      a quantidade deles vira estoque dos botões abaixo.</p>
+    </div>
+
+    <div class="card">
+      <h2>Últimos giros</h2>
+      <div id="listaGiros"></div>
+    </div>
+
+    <div class="card">
+      <h2>Fechamento do dia</h2>
+      <select id="selDia" style="width:100%;background:var(--laca);color:var(--lua);
+        border:1px solid rgba(233,193,92,.3);border-radius:8px;padding:10px;font-size:13px"></select>
+      <button class="btn ghost" onclick="verFecho()">VER FECHAMENTO</button>
+      <button class="btn ghost" onclick="baixarFecho()">BAIXAR EXCEL</button>
+    </div>
+
+    <div class="card">
+      <h2>Ações imediatas — liberar prêmio no próximo giro</h2>
+      <div class="grade-botoes" id="botoesLiberar"></div>
+      <p class="aviso">Liberar ADIANTA uma unidade do estoque do dia (se o prêmio também está
+      na fila, a próxima ocorrência é removida — nunca sai a mais). Sem estoque, o botão fica apagado.</p>
+      <h2 style="margin-top:16px">Sustos imediatos — quase ganhou</h2>
+      <div class="grade-botoes sustos" id="botoesSusto"></div>
+      <button class="btn perigo" onclick="reprogramar()">REPROGRAMAR DIA (zera e repõe tudo)</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalFecho"><div class="card">
+  <h2 id="fechoTitulo">Fechamento</h2>
+  <div id="fechoCorpo"></div>
+  <button class="btn ghost" onclick="baixarFecho()">BAIXAR EXCEL</button>
+  <button class="btn" onclick="document.getElementById('modalFecho').style.display='none'">FECHAR</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+/* ===== MESMA CONFIG DO JOGO — cole aqui também ===== */
+const FIREBASE_CONFIG = {
+  apiKey:            "COLE_AQUI",
+  authDomain:        "COLE_AQUI.firebaseapp.com",
+  projectId:         "COLE_AQUI",
+  storageBucket:     "COLE_AQUI.appspot.com",
+  messagingSenderId: "COLE_AQUI",
+  appId:             "COLE_AQUI"
+};
+const HORA_CORTE = 6;
+
+const NOMES = {
+  p100:'R$ 100', p200:'R$ 200', p500:'R$ 500', p1000:'R$ 1.000', p2000:'R$ 2.000',
+  p5000:'R$ 5.000', ipad:'iPad', iphone:'iPhone', ouro:'Barra de Ouro',
+  bike:'Bike Elétrica', caixa:'Caixa Mistério', coelho:'JACKPOT (Coelho)', gire:'Gire novamente'
+};
+const ORDEM = ['p100','p200','p500','p1000','p2000','p5000','ipad','iphone','ouro','bike','caixa','coelho','gire'];
+const ORDEM_SUSTO = ['p1000','p2000','p5000','ipad','iphone','bike','ouro','caixa','coelho'];
+const LIBERAVEIS = ['p500','p1000','p2000','p5000','ipad','iphone','ouro','bike','caixa','coelho'];
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth(), db = firebase.firestore();
+let espelho = null;
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(()=> t.style.display = 'none', 3200);
+}
+async function entrar(){
+  try{
+    await auth.signInWithEmailAndPassword(
+      document.getElementById('email').value, document.getElementById('senha').value);
+  }catch(e){ alert('Login falhou: ' + e.message); }
+}
+auth.onAuthStateChanged(u=>{
+  if(!u) return;
+  document.getElementById('telaLogin').style.display = 'none';
+  document.getElementById('painel').style.display = 'block';
+  escutar();
+  montarSeletorDia();
+});
+function escutar(){
+  db.collection('espelho').doc('dia').onSnapshot(doc=>{
+    if(!doc.exists) return;
+    espelho = doc.data();
+    render();
+  });
+  db.collection('giros').orderBy('ts','desc').limit(30).onSnapshot(q=>{
+    const el = document.getElementById('listaGiros');
+    el.innerHTML = '';
+    q.forEach(d=>{
+      const g = d.data();
+      const hora = g.ts ? g.ts.toDate().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '–';
+      const rot = g.tipo==='susto' ? 'Susto (quase '+(NOMES[g.premio]||g.premio)+')'
+                : g.tipo==='gire' ? 'Gire novamente' : (NOMES[g.premio]||g.premio);
+      el.innerHTML += '<div class="giro-linha"><span>'+rot+'</span><span class="q">'+hora+'</span></div>';
+    });
+  });
+}
+function render(){
+  const e = espelho;
+  document.getElementById('kGiros').textContent = e.spinsDia ?? '–';
+  document.getElementById('kPremios').textContent = e.itensNaFila ?? '–';
+  const totSustos = Object.values(e.sustoQty||{}).reduce((a,b)=>a+(b||0),0);
+  document.getElementById('kSustos').textContent = (e.sustosNaFila ?? '–') + ' / ' + totSustos;
+  document.getElementById('kDia').textContent = e.dia || '–';
+  const vivo = e.ts && (Date.now() - e.ts.toMillis() < 90000);
+  const p = document.getElementById('kOnline');
+  p.textContent = vivo ? 'ONLINE' : 'OFFLINE';
+  p.classList.toggle('off', !vivo);
+
+  // tabelas (só remonta se não estiver editando)
+  if(document.activeElement && document.activeElement.tagName === 'INPUT') { montarBotoes(); return; }
+  const tE = document.getElementById('tEstoque'); tE.innerHTML = '';
+  ORDEM.forEach(id=>{
+    tE.innerHTML += '<tr><td>'+NOMES[id]+'</td>'+
+      '<td><input id="q_'+id+'" type="number" min="0" value="'+((e.estoque||{})[id]??0)+'"></td>'+
+      '<td style="color:rgba(243,238,223,.45)">'+((e.saidas||{})[id]||0)+'</td>'+
+      '<td><input id="v_'+id+'" type="number" min="0" value="'+((e.valores||{})[id]??0)+'"></td></tr>';
+  });
+  const tS = document.getElementById('tSustos'); tS.innerHTML = '';
+  ORDEM_SUSTO.forEach(id=>{
+    tS.innerHTML += '<tr><td>quase '+NOMES[id]+'</td>'+
+      '<td><input id="s_'+id+'" type="number" min="0" value="'+((e.sustoQty||{})[id]??0)+'"></td></tr>';
+  });
+  montarBotoes();
+}
+function montarBotoes(){
+  const e = espelho || {};
+  const bl = document.getElementById('botoesLiberar'); bl.innerHTML = '';
+  LIBERAVEIS.forEach(id=>{
+    const resta = ((e.estoque||{})[id]||0) - ((e.saidas||{})[id]||0);
+    bl.innerHTML += '<button '+(resta<=0?'disabled':'')+
+      ' onclick="armar(\''+id+'\')">'+NOMES[id]+'</button>';
+  });
+  const bs = document.getElementById('botoesSusto'); bs.innerHTML = '';
+  ORDEM_SUSTO.forEach(id=>{
+    bs.innerHTML += '<button onclick="armarSusto(\''+id+'\')">quase '+NOMES[id]+'</button>';
+  });
+}
+async function comando(obj){
+  const ref = db.collection('controle').doc('comandos');
+  const doc = await ref.get();
+  const seq = (doc.exists && doc.data().seq || 0) + 1;
+  await ref.set({...obj, seq, ts: firebase.firestore.FieldValue.serverTimestamp()});
+}
+async function salvarConfig(){
+  const estoque = {}, valores = {}, sustoQty = {};
+  ORDEM.forEach(id=>{
+    estoque[id] = parseInt(document.getElementById('q_'+id).value)||0;
+    valores[id] = parseFloat(document.getElementById('v_'+id).value)||0;
+  });
+  ORDEM_SUSTO.forEach(id=>{
+    sustoQty[id] = parseInt(document.getElementById('s_'+id).value)||0;
+  });
+  try{
+    await comando({tipo:'config', estoque, valores, sustoQty});
+    toast('Estoque, sustos e valores: enviado ao totem ✓');
+  }catch(e){ alert('Falhou: '+e.message); }
+}
+async function armar(id){
+  if(!confirm('Liberar '+NOMES[id]+' no próximo giro?')) return;
+  try{ await comando({tipo:'armar', alvo:id}); toast(NOMES[id]+' armado pro próximo giro ✓'); }
+  catch(e){ alert('Falhou: '+e.message); }
+}
+async function armarSusto(id){
+  if(!confirm('Disparar susto "quase '+NOMES[id]+'" no próximo giro?')) return;
+  try{ await comando({tipo:'armar', alvo:'susto:'+id}); toast('Susto armado ✓'); }
+  catch(e){ alert('Falhou: '+e.message); }
+}
+async function reprogramar(){
+  if(!confirm('REPROGRAMAR o dia? Zera o que saiu e repõe o estoque cheio.')) return;
+  const estoque = {}, sustoQty = {};
+  ORDEM.forEach(id=>{ const el=document.getElementById('q_'+id); if(el) estoque[id]=parseInt(el.value)||0; });
+  ORDEM_SUSTO.forEach(id=>{ const el=document.getElementById('s_'+id); if(el) sustoQty[id]=parseInt(el.value)||0; });
+  try{ await comando({tipo:'reprogramar', estoque, sustoQty}); toast('Dia reprogramado ✓'); }
+  catch(e){ alert('Falhou: '+e.message); }
+}
+
+/* ===== fechamento do dia (6h → 6h), modal + excel ===== */
+function montarSeletorDia(){
+  const sel = document.getElementById('selDia');
+  for(let i=0;i<7;i++){
+    const d = new Date(Date.now() - i*86400000 - HORA_CORTE*3600000);
+    const rot = i===0?'Hoje':(i===1?'Ontem':d.toLocaleDateString('pt-BR'));
+    sel.innerHTML += '<option value="'+i+'">'+rot+' ('+d.toLocaleDateString('pt-BR')+')</option>';
+  }
+}
+let fechoCache = null;
+async function apurarDia(diasAtras){
+  const base = new Date(); base.setHours(HORA_CORTE,0,0,0);
+  if(new Date().getHours() < HORA_CORTE) base.setDate(base.getDate()-1);
+  base.setDate(base.getDate()-diasAtras);
+  const fim = new Date(base.getTime() + 86400000);
+  const q = await db.collection('giros')
+    .where('ts','>=',base).where('ts','<',fim).orderBy('ts').get();
+  const cont = {}, sustos = {}; let giros = 0, gire = 0, total = 0;
+  q.forEach(d=>{
+    const g = d.data(); giros++;
+    if(g.tipo==='susto'){ sustos[g.premio]=(sustos[g.premio]||0)+1; }
+    else if(g.tipo==='gire'){ gire++; }
+    else { cont[g.premio]=(cont[g.premio]||0)+1; total += g.valor||0; }
+  });
+  fechoCache = {data: base.toLocaleDateString('pt-BR'), cont, sustos, gire, giros, total};
+  return fechoCache;
+}
+async function verFecho(){
+  const f = await apurarDia(parseInt(document.getElementById('selDia').value));
+  const val = (espelho&&espelho.valores)||{};
+  let html = '<table><tr><th>Prêmio</th><th>Qtd</th><th>Valor un.</th><th>Total</th></tr>';
+  ORDEM.forEach(id=>{
+    if(!f.cont[id]) return;
+    const v = val[id]||0;
+    html += '<tr><td>'+NOMES[id]+'</td><td>'+f.cont[id]+'</td><td>'+v.toLocaleString('pt-BR')+
+            '</td><td>'+(v*f.cont[id]).toLocaleString('pt-BR')+'</td></tr>';
+  });
+  Object.keys(f.sustos).forEach(id=>{
+    html += '<tr><td style="color:#e58a84">Susto (quase '+NOMES[id]+')</td><td>'+f.sustos[id]+'</td><td>–</td><td>–</td></tr>';
+  });
+  if(f.gire) html += '<tr><td>Gire novamente</td><td>'+f.gire+'</td><td>–</td><td>–</td></tr>';
+  html += '<tr><td style="color:var(--ouro)"><b>TOTAL GIROS</b></td><td><b>'+f.giros+'</b></td>'+
+          '<td style="color:var(--ouro)"><b>TOTAL PAGO</b></td><td><b>R$ '+f.total.toLocaleString('pt-BR')+'</b></td></tr></table>';
+  document.getElementById('fechoTitulo').textContent = 'Fechamento — ' + f.data;
+  document.getElementById('fechoCorpo').innerHTML = html;
+  document.getElementById('modalFecho').style.display = 'flex';
+}
+async function baixarFecho(){
+  const f = fechoCache || await apurarDia(parseInt(document.getElementById('selDia').value));
+  const val = (espelho&&espelho.valores)||{};
+  const dourado = 'background:#E9BF5C;color:#0C0A09;font-weight:bold';
+  let linhas = '';
+  ORDEM.forEach(id=>{
+    if(!f.cont[id]) return;
+    const v = val[id]||0;
+    linhas += '<tr><td>'+NOMES[id]+'</td><td>'+f.cont[id]+'</td><td>'+v+'</td><td>'+(v*f.cont[id])+'</td></tr>';
+  });
+  Object.keys(f.sustos).forEach(id=>{
+    linhas += '<tr><td>Susto (quase '+NOMES[id]+')</td><td>'+f.sustos[id]+'</td><td></td><td></td></tr>';
+  });
+  if(f.gire) linhas += '<tr><td>Gire novamente</td><td>'+f.gire+'</td><td></td><td></td></tr>';
+  const html = '<html><head><meta charset="UTF-8"></head><body><table border="1">'+
+    '<tr><td colspan="4" style="'+dourado+'">JADE - A RODADA DA LUA - FECHAMENTO DO DIA</td></tr>'+
+    '<tr><td colspan="4">Dia;'+f.data+'</td></tr>'+
+    '<tr style="'+dourado+'"><td>Premio</td><td>Quantidade</td><td>Valor unitario</td><td>Total</td></tr>'+
+    linhas+
+    '<tr style="'+dourado+'"><td>TOTAL DE GIROS NO DIA</td><td>'+f.giros+'</td>'+
+    '<td>TOTAL PAGO EM PREMIOS</td><td>'+f.total+'</td></tr>'+
+    '</table></body></html>';
+  const blob = new Blob([html], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fechamento-jade-'+f.data.replace(/\//g,'-')+'.xls';
+  a.click();
+}
+</script>
+</body>
+</html>
