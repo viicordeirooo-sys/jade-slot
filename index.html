@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JADE — A Rodada da Lua</title>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Noto+Serif+SC:wght@600;900&family=Jost:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --laca:#0C0A09; --laca2:#161210;
+    --jade:#2E8B6A; --jade-claro:#8FDCB4;
+    --ouro:#E9C15C; --ouro-escuro:#B08A32;
+    --cinabrio:#B3312B; --lua:#F3EEDF;
+    --cell:104px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    background:
+      radial-gradient(1px 1px at 12% 18%, rgba(243,238,223,.5) 50%, transparent 51%),
+      radial-gradient(1px 1px at 78% 9%, rgba(243,238,223,.4) 50%, transparent 51%),
+      radial-gradient(1px 1px at 55% 30%, rgba(243,238,223,.35) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 88% 42%, rgba(143,220,180,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 30% 60%, rgba(243,238,223,.3) 50%, transparent 51%),
+      radial-gradient(1px 1px at 65% 78%, rgba(243,238,223,.28) 50%, transparent 51%),
+      radial-gradient(circle at 50% -10%, #1d1712 0%, var(--laca) 55%);
+    color:var(--lua); font-family:'Jost',sans-serif;
+    min-height:100vh; display:flex; justify-content:center;
+    padding:20px 12px 46px; overflow-x:hidden;
+  }
+  .folha{width:100%;max-width:520px}
+  .selo-topo{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:2px;position:relative}
+  .lua-medidor{
+    width:50px;height:50px;border-radius:50%;flex:none;position:relative;overflow:hidden;
+    background:radial-gradient(circle at 38% 35%, #fffdf4 0%, var(--lua) 45%, #cfc7ae 100%);
+    box-shadow:0 0 22px rgba(243,238,223,.45), inset -10px -6px 18px rgba(0,0,0,.25);
+  }
+  .lua-medidor .fase{
+    position:absolute;inset:0;border-radius:50%;background:var(--laca);
+    transform:translateX(-88%); transition:transform 1.2s ease;
+  }
+  h1{font-family:'Marcellus',serif;font-size:27px;letter-spacing:.14em;color:var(--ouro);
+     text-shadow:0 0 18px rgba(233,193,92,.25)}
+  h1 .hanzi{font-family:'Noto Serif SC',serif;font-weight:900;color:var(--jade-claro);margin-right:8px}
+  .sub{text-align:center;font-weight:300;letter-spacing:.3em;font-size:10.5px;
+       text-transform:uppercase;color:rgba(243,238,223,.55);margin-bottom:18px}
+  .maquina{
+    border:1px solid var(--ouro-escuro);border-radius:16px;
+    background:linear-gradient(180deg, var(--laca2), #0e1511 60%, var(--laca2));
+    box-shadow:0 0 0 4px rgba(176,138,50,.12), 0 18px 50px rgba(0,0,0,.6);
+    padding:20px 14px 16px;position:relative;
+  }
+  .maquina::before{
+    content:"月 滿 則 盈";position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    background:var(--laca);padding:0 12px;font-family:'Noto Serif SC',serif;
+    font-size:12px;letter-spacing:.5em;color:var(--ouro-escuro);
+  }
+  .janela{position:relative;margin-bottom:16px}
+  .rolos{display:flex;gap:8px;justify-content:center}
+  .rolo{
+    flex:1;max-width:150px;height:calc(var(--cell)*3);border-radius:12px;overflow:hidden;
+    background:linear-gradient(180deg, rgba(46,139,106,.18), rgba(12,10,9,.92) 26% 74%, rgba(46,139,106,.18));
+    border:1px solid rgba(233,193,92,.35);position:relative;
+  }
+  .rolo::after{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:12px;
+    background:linear-gradient(180deg, rgba(0,0,0,.75), transparent 26% 74%, rgba(0,0,0,.75));
+  }
+  .strip{will-change:transform}
+  .cell{height:var(--cell);display:flex;align-items:center;justify-content:center}
+  .simbolo{
+    width:74px;height:74px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #3ea87f, var(--jade) 55%, #17553e);
+    border:2px solid var(--ouro);
+    box-shadow:0 4px 12px rgba(0,0,0,.5), inset 0 2px 6px rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Noto Serif SC',serif;font-weight:900;font-size:36px;color:var(--lua);
+    text-shadow:0 2px 4px rgba(0,0,0,.5);
+  }
+  .simbolo.branca{
+    background:radial-gradient(circle at 32% 28%, #ffffff, var(--lua) 45%, #b9ae8c);
+    color:var(--jade);box-shadow:0 0 22px rgba(243,238,223,.55);
+  }
+  .simbolo.eclipse-selo{
+    background:radial-gradient(circle at 32% 28%, #2a0f0d, #150807 60%);
+    border-color:var(--cinabrio);color:#e58a84;
+  }
+  .payline{
+    position:absolute;left:-6px;right:-6px;top:var(--cell);height:var(--cell);
+    border-top:1.5px solid rgba(233,193,92,.6);border-bottom:1.5px solid rgba(233,193,92,.6);
+    pointer-events:none;border-radius:4px;
+    box-shadow:0 0 18px rgba(233,193,92,.12) inset;
+  }
+  .payline::before,.payline::after{
+    content:"◆";position:absolute;top:50%;transform:translateY(-50%);
+    color:var(--ouro);font-size:12px;text-shadow:0 0 8px rgba(233,193,92,.6);
+  }
+  .payline::before{left:-4px}
+  .payline::after{right:-4px}
+  .payline.vitoria{animation:pisca .18s ease 6}
+  @keyframes pisca{50%{border-color:#fff;box-shadow:0 0 26px rgba(233,193,92,.5) inset}}
+  .janela.tensao .rolo{animation:brasa .35s ease-in-out infinite alternate}
+  @keyframes brasa{
+    from{border-color:rgba(233,193,92,.35);box-shadow:none}
+    to{border-color:var(--ouro);box-shadow:0 0 26px rgba(233,193,92,.45)}
+  }
+  .btn-girar{
+    display:block;width:100%;padding:16px;border:none;border-radius:10px;cursor:pointer;
+    font-family:'Marcellus',serif;font-size:19px;letter-spacing:.28em;
+    color:var(--laca);background:linear-gradient(180deg,#f4d783,var(--ouro) 55%,var(--ouro-escuro));
+    box-shadow:0 6px 18px rgba(233,193,92,.3);
+  }
+  .btn-girar:disabled{opacity:.45;cursor:default}
+  .contador{
+    text-align:center;margin-top:11px;font-size:11px;letter-spacing:.15em;
+    text-transform:uppercase;color:rgba(243,238,223,.5);
+  }
+  .teste{display:none;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  body.modo-teste .teste{display:flex}
+  .teste button{
+    background:none;border:1px dashed rgba(243,238,223,.3);border-radius:8px;
+    color:rgba(243,238,223,.6);font-family:'Jost',sans-serif;font-size:11px;
+    letter-spacing:.12em;padding:7px 12px;cursor:pointer;
+  }
+  .teste button:disabled{opacity:.35;cursor:default}
+  .overlay{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;text-align:center;padding:30px;z-index:10;
+    overflow:hidden;
+    background:radial-gradient(circle at 50% 40%, rgba(23,85,62,.92), rgba(12,10,9,.97) 70%);
+  }
+  .overlay.aberto{display:flex;animation:surge .35s ease}
+  @keyframes surge{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
+  .overlay.aberto .selo-g{animation:pop .55s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(.25);opacity:0}to{transform:scale(1);opacity:1}}
+  .raios{
+    position:absolute;top:40%;left:50%;width:380px;height:380px;border-radius:50%;
+    background:repeating-conic-gradient(rgba(233,193,92,.22) 0 13deg, transparent 13deg 30deg);
+    -webkit-mask:radial-gradient(circle, #000 30%, transparent 70%);
+    mask:radial-gradient(circle, #000 30%, transparent 70%);
+    display:none;pointer-events:none;z-index:-1;
+    animation:giraRaios 7s linear infinite;
+  }
+  @keyframes giraRaios{
+    from{transform:translate(-50%,-50%) rotate(0deg)}
+    to{transform:translate(-50%,-50%) rotate(360deg)}
+  }
+  .overlay.grande .raios{display:block}
+  .moeda{
+    position:absolute;top:-30px;width:16px;height:16px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffe9a8, var(--ouro) 55%, var(--ouro-escuro));
+    box-shadow:0 0 8px rgba(233,193,92,.55);pointer-events:none;
+    animation:cai linear forwards;
+  }
+  @keyframes cai{to{transform:translateY(115vh) rotate(720deg)}}
+  .overlay .selo-g{
+    width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #3ea87f, var(--jade) 55%, #17553e);
+    border:3px solid var(--ouro);box-shadow:0 0 40px rgba(233,193,92,.35);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Noto Serif SC',serif;font-weight:900;font-size:80px;color:var(--lua);
+  }
+  .overlay.jackpot{background:radial-gradient(circle at 50% 40%, rgba(243,238,223,.2), rgba(12,10,9,.97) 70%)}
+  .overlay.jackpot .selo-g{
+    background:radial-gradient(circle at 32% 28%, #ffffff, var(--lua) 45%, #b9ae8c);
+    color:var(--jade);box-shadow:0 0 70px rgba(243,238,223,.8);
+  }
+  .overlay.eclipse{background:radial-gradient(circle at 50% 40%, rgba(179,49,43,.25), #050403 75%)}
+  .overlay.eclipse .selo-g{
+    background:radial-gradient(circle at 32% 28%, #2a0f0d, #150807 60%);
+    border-color:var(--cinabrio);color:#e58a84;box-shadow:0 0 50px rgba(179,49,43,.5);
+    animation:treme .1s linear 8;
+  }
+  @keyframes treme{0%{transform:translateX(-4px)}50%{transform:translateX(4px)}100%{transform:translateX(0)}}
+  .overlay .titulo{font-family:'Marcellus',serif;font-size:26px;letter-spacing:.1em;color:var(--ouro)}
+  .overlay .nome-real{font-size:16px;font-weight:300;color:var(--lua);max-width:300px;line-height:1.4}
+  .overlay .nome-real b{color:var(--jade-claro);font-weight:600}
+  .overlay.eclipse .titulo{color:#e58a84}
+  .overlay.grande{
+    background:radial-gradient(circle at 50% 40%, rgba(233,193,92,.30), rgba(12,10,9,.96) 72%);
+    animation:flashOuro .5s ease-in-out 8 alternate;
+  }
+  @keyframes flashOuro{
+    from{background:radial-gradient(circle at 50% 40%, rgba(233,193,92,.30), rgba(12,10,9,.96) 72%)}
+    to{background:radial-gradient(circle at 50% 40%, rgba(233,193,92,.55), rgba(23,85,62,.95) 72%)}
+  }
+  .overlay.grande .selo-g{
+    box-shadow:0 0 80px rgba(233,193,92,.85);
+    animation:pulsaSelo .45s ease-in-out 10 alternate;
+  }
+  @keyframes pulsaSelo{from{transform:scale(1)}to{transform:scale(1.08)}}
+  .overlay.grande .titulo{font-size:30px;text-shadow:0 0 22px rgba(233,193,92,.7)}
+  .bloqueio{
+    position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    flex-direction:column;gap:16px;background:rgba(12,10,9,.97);text-align:center;padding:30px;
+  }
+  .bloqueio.ativo{display:flex}
+  .bloqueio h2{font-family:'Marcellus',serif;color:var(--ouro);letter-spacing:.2em}
+  .bloqueio input{
+    background:var(--laca2);border:1px solid rgba(233,193,92,.4);border-radius:8px;
+    color:var(--lua);font-size:20px;text-align:center;letter-spacing:.4em;padding:10px;width:160px;
+  }
+  .bloqueio button{
+    background:linear-gradient(180deg,#f4d783,var(--ouro) 55%,var(--ouro-escuro));
+    border:none;border-radius:8px;color:var(--laca);font-family:'Marcellus',serif;
+    letter-spacing:.2em;padding:12px 26px;cursor:pointer;
+  }
+  @media (max-width:400px){ :root{--cell:88px} .simbolo{width:62px;height:62px;font-size:30px} }
+</style>
+</head>
+<body>
+<div class="folha">
+  <div class="selo-topo">
+    <div class="lua-medidor"><div class="fase" id="fase"></div></div>
+    <h1><span class="hanzi">玉兔</span>JADE</h1>
+  </div>
+  <p class="sub">A Rodada da Lua</p>
+  <div class="maquina">
+    <div class="janela">
+      <div class="rolos">
+        <div class="rolo"><div class="strip" id="s0"></div></div>
+        <div class="rolo"><div class="strip" id="s1"></div></div>
+        <div class="rolo"><div class="strip" id="s2"></div></div>
+      </div>
+      <div class="payline" id="payline"></div>
+    </div>
+    <button class="btn-girar" id="btn" onclick="girar()">GIRAR</button>
+    <div class="contador" id="contador">Giros: 0</div>
+    <div class="teste">
+      <button onclick="girar('__susto')">Testar Perda</button>
+      <button onclick="girar('p100')">Prêmio comum</button>
+      <button onclick="girar('iphone')">Grande prêmio</button>
+      <button onclick="girar('coelho')">Jackpot</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov">
+  <div class="raios"></div>
+  <div class="selo-g" id="ovSelo">兔</div>
+  <div class="titulo" id="ovTitulo"></div>
+  <div class="nome-real" id="ovNome"></div>
+</div>
+
+<div class="bloqueio" id="bloqueio">
+  <h2>OUTRO TOTEM ATIVO</h2>
+  <p style="font-weight:300;max-width:300px">Outra máquina está com a fila oficial.
+  Pra assumir aqui, digite o PIN — esta máquina ADOTA a fila do Firebase.</p>
+  <input id="pinInput" type="password" maxlength="4" placeholder="PIN">
+  <button onclick="assumir()">ASSUMIR</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — preencha os 3 blocos abaixo antes de subir
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey:            "COLE_AQUI",
+  authDomain:        "COLE_AQUI.firebaseapp.com",
+  projectId:         "COLE_AQUI",
+  storageBucket:     "COLE_AQUI.appspot.com",
+  messagingSenderId: "COLE_AQUI",
+  appId:             "COLE_AQUI"
+};
+const TOTEM_EMAIL = "totem@jaderodada.com";   // usuário do totem no Firebase Auth
+const TOTEM_SENHA = "COLE_AQUI";              // senha do totem
+const PIN = "2026";                            // PIN do ASSUMIR (trocar depois)
+const HORA_CORTE = 6;                          // o dia vira às 6h da manhã
+
+/* ===== catálogo (mesmos prêmios do Lions, selos chineses) ===== */
+const SIMBOLOS = {
+  p100:  {ch:'錢', nome:'Moeda de Cobre',  premio:'R$ 100'},
+  p200:  {ch:'福', nome:'Hongbao',         premio:'R$ 200'},
+  p500:  {ch:'燈', nome:'Lanterna',        premio:'R$ 500'},
+  p1000: {ch:'月', nome:'Mooncake',        premio:'R$ 1.000'},
+  p2000: {ch:'鯉', nome:'Carpa Koi',       premio:'R$ 2.000'},
+  p5000: {ch:'龍', nome:'Dragão Dourado',  premio:'R$ 5.000'},
+  ipad:  {ch:'卷', nome:'Pergaminho',      premio:'um iPad'},
+  iphone:{ch:'鳳', nome:'Fênix',           premio:'um iPhone'},
+  ouro:  {ch:'金', nome:'Yuanbao',         premio:'uma Barra de Ouro'},
+  bike:  {ch:'馬', nome:'Cavalo do Vento', premio:'uma Bike Elétrica'},
+  caixa: {ch:'寶', nome:'Baú Laqueado',    premio:'a Caixa Mistério'},
+  coelho:{ch:'兔', nome:'Coelho de Jade',  premio:'o JACKPOT DA LUA'},
+  gire:  {ch:'新', nome:'Lua Nova',        premio:'Gire novamente'}
+};
+const TODOS = Object.keys(SIMBOLOS).filter(k=>k!=='gire');
+
+// estoque padrão do dia (editável pelo admin, igual ao Lions)
+const QTD_PADRAO   = {p100:30, p200:10, p500:8, p1000:2, p2000:0, p5000:1,
+                      ipad:0, iphone:0, ouro:0, bike:0, caixa:0, coelho:0, gire:10};
+// sustos padrão por alvo (editável pelo admin)
+const SUSTO_PADRAO = {p1000:2, p2000:0, p5000:3, ipad:2, iphone:3, bike:0, ouro:3, caixa:1, coelho:1};
+// valores pro fechamento (editável pelo admin)
+const VALOR_PADRAO = {p100:100, p200:200, p500:500, p1000:1000, p2000:2000, p5000:5000,
+                      ipad:2000, iphone:7500, ouro:12000, bike:5000, caixa:0, coelho:0, gire:0};
+// só saem por botão do admin — nunca entram no sorteio automático
+const LIBERADOS_MANUAL = ['ipad','iphone','ouro','bike','caixa','coelho'];
+// disparam os tambores da dança do leão na 1ª parada
+const GRANDES = ['p5000','ipad','iphone','ouro','bike','coelho'];
+
+/* ===== tempos (idênticos ao Lions, com a regra nova de tela) ===== */
+const PARADAS = [10000, 12000, 14000];
+const REVELACAO = 14000;
+const TEMPO_RESULTADO = 5000;    // prêmio comum e perda: 5s e sai sozinho
+const TEMPO_JACKPOT   = 30000;   // jackpot: 30s (ou até apertarem GIRAR)
+
+/* ===== som (Web Audio, tudo sintetizado — sem suona, sem prato) ===== */
+let AC = null, somLigado = true;
+function ctx(){
+  if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if(AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function pluck(freq, t=0, dur=0.6, vol=0.22){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  [ [freq,1], [freq*2.005,0.35], [freq*3.01,0.12] ].forEach(([f,m])=>{
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(vol*m, n);
+    g.gain.exponentialRampToValueAtTime(0.0001, n+dur);
+    o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+dur+0.05);
+  });
+}
+function tok(t=0, vol=0.10){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(880, n);
+  o.frequency.exponentialRampToValueAtTime(320, n+0.05);
+  g.gain.setValueAtTime(vol, n);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+0.07);
+  o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+0.1);
+}
+function tambor(t=0, vol=0.22){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(115, n);
+  o.frequency.exponentialRampToValueAtTime(42, n+0.16);
+  g.gain.setValueAtTime(vol, n);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+0.22);
+  o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+0.25);
+}
+function gongo(grande=false, t=0){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  const base = grande ? 128 : 196;
+  const dur = grande ? 3.2 : 1.8;
+  [1, 1.52, 2.07, 2.76, 3.51].forEach((m,i)=>{
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.value = base*m*(1+(Math.random()-.5)*0.01);
+    const v = (grande?0.20:0.13)/(i+1);
+    g.gain.setValueAtTime(0.0001, n);
+    g.gain.exponentialRampToValueAtTime(v, n+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, n+dur);
+    o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+dur+0.1);
+  });
+}
+function gongoEco(t=0){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  [[0, 1], [0.42, 0.45], [0.95, 0.20]].forEach(([atr, forca])=>{
+    [1, 1.52, 2.07, 2.76, 3.51].forEach((m,i)=>{
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = 196*m*(1+(Math.random()-.5)*0.01);
+      const v = (0.16*forca)/(i+1);
+      g.gain.setValueAtTime(0.0001, n+atr);
+      g.gain.exponentialRampToValueAtTime(v, n+atr+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, n+atr+3.0);
+      o.connect(g); g.connect(a.destination); o.start(n+atr); o.stop(n+atr+3.1);
+    });
+  });
+}
+const PENTA = [220, 261.6, 293.7, 329.6, 392, 440, 523.3, 587.3];
+
+/* ===== música festiva de Macau (só durante o giro) ===== */
+let ambGain = null, loopTimer = null;
+function amb(){
+  const a = ctx();
+  if(!ambGain){ ambGain = a.createGain(); ambGain.gain.value = 1; ambGain.connect(a.destination); }
+  return ambGain;
+}
+function cordaFesta(freq, t=0, dur=0.9, vol=0.075){
+  const a = ctx(), n = a.currentTime + t;
+  [ [1,1], [2.004,0.45], [3.01,0.18], [4.02,0.07] ].forEach(([m,pk])=>{
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'triangle'; o.frequency.value = freq*m;
+    g.gain.setValueAtTime(0.0001, n);
+    g.gain.exponentialRampToValueAtTime(vol*pk, n+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, n+dur);
+    o.connect(g); g.connect(amb()); o.start(n); o.stop(n+dur+0.1);
+  });
+}
+function madeira(t=0, vol=0.07){
+  const a = ctx(), n = a.currentTime + t;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(1500, n);
+  o.frequency.exponentialRampToValueAtTime(900, n+0.03);
+  g.gain.setValueAtTime(vol, n);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+0.05);
+  o.connect(g); g.connect(amb()); o.start(n); o.stop(n+0.07);
+}
+function bumbo(t=0, vol=0.15){
+  const a = ctx(), n = a.currentTime + t;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(120, n);
+  o.frequency.exponentialRampToValueAtTime(48, n+0.12);
+  g.gain.setValueAtTime(vol, n);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+0.18);
+  o.connect(g); g.connect(amb()); o.start(n); o.stop(n+0.2);
+}
+const FESTA = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3, 784, 880];
+const BPM = 126, BEAT = 60/BPM;
+const RIFFS = [
+  [[0,4],[0.5,5],[1,6],[1.5,5],[2,4],[2.5,6],[3,4],[3.5,2],[4,4],[4.5,5],[5,7],[5.5,6],[6,5],[6.5,4],[7,2]],
+  [[0,7],[0.5,7],[1,6],[1.5,5],[2,6],[3,7],[3.5,8],[4,9],[4.5,8],[5,7],[5.5,6],[6,5],[7,4]],
+  [[0,2],[0.5,4],[1,5],[1.5,4],[2,2],[2.5,0],[3,2],[4,4],[4.5,5],[5,6],[5.5,7],[6,6],[6.5,5],[7,4]],
+];
+let compassoN = 0;
+function agendarCompasso(){
+  for(let b=0;b<8;b++){
+    if(b%2===0) bumbo(b*BEAT, b%4===0 ? 0.15 : 0.10);
+    madeira(b*BEAT + BEAT/2, 0.06);
+  }
+  const riff = RIFFS[compassoN % RIFFS.length];
+  riff.forEach(([b,ix])=> cordaFesta(FESTA[ix], b*BEAT, 0.8, 0.07));
+  if(compassoN % 4 === 3){
+    for(let k=0;k<10;k++) cordaFesta(FESTA[k], 7*BEAT + k*0.05, 0.6, 0.05);
+  }
+  compassoN++;
+}
+function loopMusica(){ agendarCompasso(); loopTimer = setTimeout(loopMusica, 8*BEAT*1000 - 60); }
+function tocarMusicaGiro(){
+  const a = ctx(); amb();
+  clearTimeout(loopTimer);
+  ambGain.gain.cancelScheduledValues(a.currentTime);
+  ambGain.gain.setValueAtTime(1, a.currentTime);
+  bumbo(0.02, 0.14); madeira(0.02, 0.08);
+  loopMusica();
+}
+function pararMusica(){
+  clearTimeout(loopTimer); loopTimer = null;
+  if(!ambGain) return;
+  const a = ctx();
+  ambGain.gain.cancelScheduledValues(a.currentTime);
+  ambGain.gain.setValueAtTime(ambGain.gain.value, a.currentTime);
+  ambGain.gain.linearRampToValueAtTime(0.0001, a.currentTime + 0.35);
+}
+
+/* ===== sirene de sinos (grandes prêmios) ===== */
+function sino(freq, t=0, dur=0.5, vol=0.16){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  [ [1,1], [2.76,0.35], [5.40,0.12] ].forEach(([m,pk])=>{
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.value = freq*m;
+    g.gain.setValueAtTime(0.0001, n);
+    g.gain.exponentialRampToValueAtTime(vol*pk, n+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, n+dur);
+    o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+dur+0.05);
+  });
+}
+function rufo(t=0, dur=1.2){ for(let x=0; x<dur; x+=0.07) tambor(t+x, 0.10); }
+function sireneMacau(){
+  if(!somLigado) return;
+  rufo(0, 0.7);
+  let t = 0.15, k = 0;
+  while(t < 2.55){
+    sino(k%2 ? 1568 : 1318.5, t, .34, 0.10 + 0.13*(t/2.55));
+    t += 0.125; k++;
+  }
+  for(let i=0;i<10;i++) sino(FESTA[i]*2, 2.6 + i*0.07, .5, .15);
+  gongo(true, 3.3);
+  gongoEco(3.5);
+}
+function fanfarraJackpot(){
+  [0,1,2,3,4,5,6,7].forEach(i=> pluck(PENTA[i], i*0.09, .8, .2));
+  gongo(true, 0.5); gongo(true, 1.1);
+}
+function arpejoRevelacao(){
+  pluck(PENTA[3], 0.00, .7, .2);
+  pluck(PENTA[5], 0.12, .7, .2);
+  pluck(PENTA[7], 0.24, .9, .22);
+  gongoEco(0.30);
+}
+/* tambores da dança do leão — tensão */
+function tamborLeao(t=0, vol=0.18){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(150, n);
+  o.frequency.exponentialRampToValueAtTime(60, n+0.10);
+  g.gain.setValueAtTime(vol, n);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+0.16);
+  o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+0.18);
+}
+function tensaoLeao(dur=3.9){
+  if(!somLigado) return;
+  let t = 0, iv = 0.50, hit = 0;
+  while(t < dur){
+    const cresce = t/dur;
+    tamborLeao(t, 0.12 + 0.16*cresce);
+    if(hit % 4 === 0) sino(1046.5, t, .25, 0.04 + 0.05*cresce);
+    t += iv; iv = Math.max(0.11, iv*0.90); hit++;
+  }
+}
+/* brincadeira da perda */
+function somPerda(){
+  if(!somLigado) return; const a = ctx(), n = a.currentTime;
+  const desce = [880, 784, 659.3, 587.3, 523.3, 440];
+  desce.forEach((f,i)=> pluck(f, 0.05 + i*0.09, .45, .14));
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(660, n+0.6);
+  o.frequency.exponentialRampToValueAtTime(220, n+1.3);
+  g.gain.setValueAtTime(0.10, n+0.6);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+1.4);
+  o.connect(g); g.connect(a.destination); o.start(n+0.6); o.stop(n+1.5);
+  madeira2(1.5, 0.09); madeira2(1.85, 0.08); madeira2(2.35, 0.07); madeira2(3.0, 0.06);
+  gongo(false, 2.6);
+}
+function madeira2(t=0, vol=0.07){ // madeira direta (fora da música)
+  if(!somLigado) return; const a = ctx(), n = a.currentTime + t;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(1500, n);
+  o.frequency.exponentialRampToValueAtTime(900, n+0.03);
+  g.gain.setValueAtTime(vol, n);
+  g.gain.exponentialRampToValueAtTime(0.0001, n+0.05);
+  o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+0.07);
+}
+const FRASES_PERDA = [
+  'O Coelho piscou pra você e fugiu... <b>再来 · tente de novo</b>',
+  'O Deus da Fortuna riu alto em Macau... <b>e mandou você voltar</b>',
+  'A lua se escondeu atrás do neon... <b>a próxima é sua</b>',
+  'Por um fio de seda... <b>o jade quase foi seu</b>',
+  'O Mestre diz: quem quase ganha hoje, <b>ganha em dobro amanhã</b>',
+];
+
+/* ============================================================
+   MOTOR — fila única por posição (arquitetura do Lions)
+   ============================================================ */
+function agora(){ return new Date(); }
+function diaChave(d){
+  d = d || agora();
+  const c = new Date(d.getTime() - HORA_CORTE*3600*1000); // giro das 3h conta pra noite anterior
+  return 'D' + c.getFullYear() + '-' + String(c.getMonth()+1).padStart(2,'0') + '-' + String(c.getDate()).padStart(2,'0');
+}
+let state = null;
+function carregarEstado(){
+  try{
+    const s = JSON.parse(localStorage.getItem('jade-estado'));
+    if(s && s.dia === diaChave()) { state = s; return; }
+  }catch(e){}
+  novoDia();
+}
+function novoDia(){
+  state = {
+    dia: diaChave(),
+    estoque: {...QTD_PADRAO},
+    sustoQty: {...SUSTO_PADRAO},
+    valores: {...VALOR_PADRAO},
+    fila: [],
+    pos: 0,
+    spinsDia: 0,
+    saidas: {},           // quanto já saiu de cada prêmio no dia
+    sustosSaidos: 0,
+    armado: null,         // liberação manual pendente: 'ipad' ou 'susto:ipad'
+    seq: state ? state.seq : 0
+  };
+  montarFila();
+  salvarEstado();
+}
+function salvarEstado(){
+  try{ localStorage.setItem('jade-estado', JSON.stringify(state)); }catch(e){}
+}
+function montarFila(){
+  // 1. prêmios automáticos (manuais ficam fora — só estoque de botão)
+  let fila = [];
+  for(const id of Object.keys(state.estoque)){
+    if(id === 'gire' || LIBERADOS_MANUAL.includes(id)) continue;
+    const resta = (state.estoque[id]||0) - (state.saidas[id]||0);
+    for(let k=0;k<resta;k++) fila.push(id);
+  }
+  // 2. embaralhar
+  for(let i=fila.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [fila[i],fila[j]] = [fila[j],fila[i]];
+  }
+  // 3. gire (fase 0.30) e sustos (fase 0.72), jitter ±0.08
+  const nGire = Math.max(0, (state.estoque.gire||0) - (state.saidas.gire||0));
+  const alvos = [];
+  for(const id of Object.keys(state.sustoQty)){
+    for(let k=0;k<(state.sustoQty[id]||0);k++) alvos.push(id);
+  }
+  for(let i=alvos.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [alvos[i],alvos[j]] = [alvos[j],alvos[i]];
+  }
+  const restaSustos = Math.max(0, alvos.length - state.sustosSaidos);
+  const sustos = alvos.slice(0, restaSustos).map(a=>'susto:'+a);
+  const base = fila.length;
+  function posicoes(n, fase){
+    const ps = [];
+    for(let k=0;k<n;k++){
+      const jit = (Math.random()-0.5)*0.16;
+      ps.push(Math.max(0, Math.min(base, Math.round((k+fase+jit)*base/Math.max(1,n)))));
+    }
+    return ps;
+  }
+  const inserir = [];
+  posicoes(nGire, 0.30).forEach(p=> inserir.push([p,'gire']));
+  posicoes(sustos.length, 0.72).forEach((p,k)=> inserir.push([p, sustos[k]]));
+  inserir.sort((a,b)=> b[0]-a[0]);            // insere de trás pra frente
+  inserir.forEach(([p,it])=> fila.splice(p, 0, it));
+  // 4. ESPALHAMENTO na fila COMPLETA (lição do Lions: a fila já nasce limpa)
+  //    conflito = 3 iguais seguidos OU dois especiais (gire/susto) colados
+  const ehEspecial = x => { x=String(x); return x==='gire' || x.startsWith('susto:'); };
+  const conflitoEm = i => {
+    if(i>=2 && fila[i]===fila[i-1] && fila[i]===fila[i-2]) return true;
+    if(i>=1 && ehEspecial(fila[i]) && ehEspecial(fila[i-1])) return true;
+    return false;
+  };
+  const zonaLimpa = i => {
+    for(let k=Math.max(2,i-2); k<=Math.min(fila.length-1,i+2); k++) if(conflitoEm(k)) return false;
+    return true;
+  };
+  for(let passada=0; passada<80; passada++){
+    let sujo = false;
+    for(let i=1;i<fila.length;i++){
+      if(!conflitoEm(i)) continue;
+      sujo = true;
+      for(let tent=0; tent<40; tent++){
+        const j = Math.floor(Math.random()*fila.length);
+        if(j===i) continue;
+        [fila[i],fila[j]] = [fila[j],fila[i]];
+        if(zonaLimpa(i) && zonaLimpa(j)) break;
+        [fila[i],fila[j]] = [fila[j],fila[i]];   // desfaz e tenta outro j
+      }
+    }
+    if(!sujo) break;
+  }
+  state.fila = fila;
+  state.pos = 0;
+}
+function itensNaFila(){ return state.fila.length - state.pos; }
+function sustosNaFila(){ return state.fila.slice(state.pos).filter(x=>String(x).startsWith('susto:')).length; }
+function removerDaFila(id){
+  for(let i=state.pos;i<state.fila.length;i++){
+    if(state.fila[i]===id){ state.fila.splice(i,1); return true; }
+  }
+  return false;
+}
+function removerSustoDaFila(alvo){
+  for(let i=state.pos;i<state.fila.length;i++){
+    if(state.fila[i]==='susto:'+alvo){ state.fila.splice(i,1); return true; }
+  }
+  for(let i=state.pos;i<state.fila.length;i++){
+    if(String(state.fila[i]).startsWith('susto:')){ state.fila.splice(i,1); return true; }
+  }
+  return false;
+}
+function proximoItem(){
+  // virada do dia
+  if(state.dia !== diaChave()) novoDia();
+  // liberação manual armada pelo admin: ADIANTA, não soma
+  if(state.armado){
+    const cmd = state.armado; state.armado = null;
+    if(cmd.startsWith('susto:')){
+      const alvo = cmd.slice(6);
+      if((state.sustoQty[alvo]||0) > 0 || sustosNaFila() > 0){
+        removerSustoDaFila(alvo);
+        state.sustosSaidos++;
+        return 'susto:'+alvo;
+      }
+    } else {
+      const resta = (state.estoque[cmd]||0) - (state.saidas[cmd]||0);
+      if(resta > 0){
+        removerDaFila(cmd);                 // se também estiver na fila, adianta
+        state.saidas[cmd] = (state.saidas[cmd]||0) + 1;
+        return cmd;
+      }
+    }
+    // sem estoque: comando descartado em silêncio (regra do Lions)
+  }
+  // fila normal
+  while(state.pos < state.fila.length){
+    const it = state.fila[state.pos++];
+    if(String(it).startsWith('susto:')){ state.sustosSaidos++; return it; }
+    if(it === 'gire'){ state.saidas.gire = (state.saidas.gire||0)+1; return it; }
+    state.saidas[it] = (state.saidas[it]||0)+1;
+    return it;
+  }
+  return 'gire'; // fila esgotada: consolação (todo giro premia algo)
+}
+
+/* ============================================================
+   FIREBASE — espelho, log, lock e comandos (best-effort)
+   ============================================================ */
+let db = null, auth = null, online = false, souDono = false, ultimoSeqCmd = 0;
+try{ ultimoSeqCmd = parseInt(localStorage.getItem('jade-seqcmd')||'0'); }catch(e){}
+function pilula(ok){ /* status ONLINE/OFFLINE agora só no painel do admin */ }
+async function ligarFirebase(){
+  if(FIREBASE_CONFIG.apiKey === 'COLE_AQUI'){ pilula(false); souDono = true; return; }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth(); db = firebase.firestore();
+    await auth.signInWithEmailAndPassword(TOTEM_EMAIL, TOTEM_SENHA);
+    online = true; pilula(true);
+    await tratarLock();
+    escutarComandos();
+    setInterval(batimento, 30000);
+    publicarEspelho();
+  }catch(e){ console.warn('Firebase off:', e.message); pilula(false); souDono = true; }
+}
+const MEU_ID = 'T' + Math.random().toString(36).slice(2,10);
+async function tratarLock(){
+  try{
+    const ref = db.collection('espelho').doc('lock');
+    const doc = await ref.get();
+    const d = doc.exists ? doc.data() : null;
+    const vivo = d && d.ts && (Date.now() - d.ts.toMillis() < 90000);
+    if(vivo && d.dono !== MEU_ID){
+      document.getElementById('bloqueio').classList.add('ativo');
+      return;
+    }
+    await ref.set({dono: MEU_ID, ts: firebase.firestore.FieldValue.serverTimestamp()});
+    souDono = true;
+    adotarFilaOficial();
+  }catch(e){ souDono = true; }
+}
+async function assumir(){
+  if(document.getElementById('pinInput').value !== PIN){ alert('PIN errado'); return; }
+  try{
+    await db.collection('espelho').doc('lock')
+      .set({dono: MEU_ID, ts: firebase.firestore.FieldValue.serverTimestamp()});
+    souDono = true;
+    document.getElementById('bloqueio').classList.remove('ativo');
+    adotarFilaOficial();
+  }catch(e){ alert('Falhou: ' + e.message); }
+}
+async function adotarFilaOficial(){
+  try{
+    const doc = await db.collection('espelho').doc('dia').get();
+    if(doc.exists){
+      const d = doc.data();
+      if(d.dia === diaChave() && d.fila){
+        state = {...state, ...d, armado: state.armado};
+        salvarEstado(); atualizarUI();
+      }
+    }
+  }catch(e){}
+}
+async function batimento(){
+  if(!online || !souDono) return;
+  try{
+    await db.collection('espelho').doc('lock')
+      .set({dono: MEU_ID, ts: firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){}
+}
+let espelhoTimer = null;
+function publicarEspelho(){
+  if(!online || !souDono) return;
+  clearTimeout(espelhoTimer);
+  espelhoTimer = setTimeout(async ()=>{
+    try{
+      await db.collection('espelho').doc('dia').set({
+        dia: state.dia, fila: state.fila, pos: state.pos,
+        estoque: state.estoque, sustoQty: state.sustoQty, valores: state.valores,
+        saidas: state.saidas, sustosSaidos: state.sustosSaidos,
+        spinsDia: state.spinsDia,
+        itensNaFila: itensNaFila(), sustosNaFila: sustosNaFila(),
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }catch(e){}
+  }, 800);
+}
+function logGiro(tipo, id, valor){
+  if(!online || !souDono) return;
+  try{
+    db.collection('giros').add({
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+      dia: state.dia, tipo, premio: id, valor: valor||0
+    });
+  }catch(e){}
+}
+function escutarComandos(){
+  db.collection('controle').doc('comandos').onSnapshot(doc=>{
+    if(!doc.exists || !souDono) return;
+    const c = doc.data();
+    if(!c.seq || c.seq <= ultimoSeqCmd) return;
+    ultimoSeqCmd = c.seq;
+    try{ localStorage.setItem('jade-seqcmd', String(ultimoSeqCmd)); }catch(e){}
+    aplicarComando(c);
+  });
+}
+function aplicarComando(c){
+  if(c.tipo === 'config'){
+    // aplica quantidades preservando o que já saiu no dia (regra do Lions)
+    if(c.estoque)  state.estoque  = {...state.estoque,  ...c.estoque};
+    if(c.sustoQty) state.sustoQty = {...state.sustoQty, ...c.sustoQty};
+    if(c.valores)  state.valores  = {...state.valores,  ...c.valores};
+    montarFila();
+  }
+  if(c.tipo === 'reprogramar'){
+    state.saidas = {}; state.sustosSaidos = 0; state.spinsDia = 0;
+    if(c.estoque)  state.estoque  = {...QTD_PADRAO, ...c.estoque};
+    if(c.sustoQty) state.sustoQty = {...SUSTO_PADRAO, ...c.sustoQty};
+    montarFila();
+  }
+  if(c.tipo === 'armar'){ state.armado = c.alvo; }
+  salvarEstado(); atualizarUI(); publicarEspelho();
+}
+
+/* ============================================================
+   ROLOS + JOGO
+   ============================================================ */
+const CELL = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'));
+let ocupado = false, luaPct = 0.12, fecharTimer = null, jackpotNaTela = false;
+const $ = id => document.getElementById(id);
+const strips = [ $('s0'), $('s1'), $('s2') ];
+function chAleatorio(){ return SIMBOLOS[TODOS[Math.floor(Math.random()*TODOS.length)]].ch; }
+function celula(ch, classeExtra=''){
+  return '<div class="cell"><div class="simbolo '+classeExtra+'">'+ch+'</div></div>';
+}
+function montarInicio(){
+  strips.forEach(s=>{
+    s.innerHTML = celula(chAleatorio()) + celula(chAleatorio()) + celula(chAleatorio());
+    s.style.transform = 'translateY(0)';
+  });
+}
+const easeOut = p => 1 - Math.pow(1-p, 3);
+function rodarRolo(i, chMeio, classeMeio, dur, aoParar, passaDaLinha){
+  const s = strips[i];
+  const corpo = [78, 92, 106][i];
+  let html = s.innerHTML;
+  for(let k=0;k<corpo;k++) html += celula(chAleatorio());
+  if(passaDaLinha){
+    // SUSTO estilo Lions: a figura do prêmio passa devagar pela linha e para 1 depois
+    let outro = chAleatorio();
+    while(outro === chMeio) outro = chAleatorio();
+    html += celula(chMeio, classeMeio) + celula(outro) + celula(chAleatorio());
+  } else {
+    html += celula(chAleatorio()) + celula(chMeio, classeMeio) + celula(chAleatorio());
+  }
+  s.innerHTML = html;
+  const total = s.children.length;
+  const distancia = (total-3) * CELL();
+  const inicio = performance.now();
+  let ultimaCel = 0;
+  function frame(agoraT){
+    const p = Math.min(1, (agoraT-inicio)/dur);
+    const y = distancia * easeOut(p);
+    s.style.transform = 'translateY(-'+y+'px)';
+    const cel = Math.floor(y / CELL());
+    if(cel !== ultimaCel){ ultimaCel = cel; tok(0, 0.015 + 0.02*(1-p)); }
+    if(p < 1) requestAnimationFrame(frame);
+    else { aoParar && aoParar(); }
+  }
+  requestAnimationFrame(frame);
+}
+function trilhaDoGiro(){
+  if(!somLigado) return;
+  gongo(false, 0);   // só o gongo de abertura — a música de Macau carrega o giro
+}
+function girar(forcado){
+  if(ocupado){
+    return; // clique em cima de giro rodando: ignora (jackpot na tela é tratado no fechar)
+  }
+  ocupado = true; $('btn').disabled = true;
+  document.querySelectorAll('.teste button').forEach(b=> b.disabled = true);
+  $('payline').classList.remove('vitoria');
+  state.spinsDia++;
+  $('contador').textContent = 'Giros: ' + state.spinsDia;
+
+  ctx();
+  tocarMusicaGiro();
+
+  // modo teste: força resultado sem consumir a fila real
+  let item;
+  if(forcado === '__susto') item = 'susto:coelho';
+  else if(forcado) item = forcado;
+  else item = proximoItem();
+  salvarEstado(); publicarEspelho();
+
+  const eSusto = String(item).startsWith('susto:');
+  const id = eSusto ? item.slice(6) : item;
+  const temTensao = eSusto || GRANDES.includes(id);
+  trilhaDoGiro();
+  // susto estica o giro igual ao Lions: 10 / 15,3 / 20,6s
+  const P = eSusto ? [10000, 15300, 20600] : PARADAS;
+  if(temTensao){
+    setTimeout(()=>{
+      document.querySelector('.janela').classList.add('tensao');
+      tensaoLeao((P[2]-P[0])/1000 - 0.1);
+    }, P[0]);
+  }
+  // rolos: no susto as 3 colunas mostram o ALVO — a 3ª passa da linha e para 1 depois
+  const chAlvo = SIMBOLOS[id].ch;
+  const classe = (id==='coelho') ? 'branca' : '';
+  rodarRolo(0, chAlvo, classe, P[0], null);
+  rodarRolo(1, chAlvo, classe, P[1], null);
+  rodarRolo(2, chAlvo, classe, P[2], ()=>{
+    if(!eSusto) $('payline').classList.add('vitoria');
+  }, eSusto);
+  setTimeout(()=> revelar(item, !!forcado), P[2]);
+}
+function chuvaDeMoedas(qtd){
+  const ov = $('ov');
+  ov.querySelectorAll('.moeda').forEach(m=> m.remove());
+  for(let k=0;k<qtd;k++){
+    const m = document.createElement('div');
+    m.className = 'moeda';
+    m.style.left = (Math.random()*100) + '%';
+    const tam = 10 + Math.random()*12;
+    m.style.width = tam+'px'; m.style.height = tam+'px';
+    m.style.animationDuration = (1.8 + Math.random()*1.6) + 's';
+    m.style.animationDelay = (Math.random()*2.2) + 's';
+    ov.appendChild(m);
+    setTimeout(()=> m.remove(), 6500);
+  }
+}
+function revelar(item, teste){
+  pararMusica();
+  document.querySelector('.janela').classList.remove('tensao');
+  const ov = $('ov');
+  ov.classList.remove('jackpot','eclipse','grande');
+  const eSusto = String(item).startsWith('susto:');
+  const id = eSusto ? item.slice(6) : item;
+  jackpotNaTela = false;
+
+  if(eSusto){
+    ov.classList.add('eclipse');
+    $('ovSelo').textContent = '蝕';
+    $('ovTitulo').textContent = 'QUASE!';
+    $('ovNome').innerHTML = FRASES_PERDA[Math.floor(Math.random()*FRASES_PERDA.length)];
+    somPerda();
+    if(!teste) logGiro('susto', id, 0);
+  } else if(id === 'gire'){
+    $('ovSelo').textContent = SIMBOLOS.gire.ch;
+    $('ovSelo').className = 'selo-g';
+    $('ovTitulo').textContent = SIMBOLOS.gire.nome;
+    $('ovNome').innerHTML = 'Lua nova — <b>gire novamente!</b>';
+    arpejoRevelacao();
+    if(!teste) logGiro('gire', 'gire', 0);
+  } else {
+    const s = SIMBOLOS[id];
+    $('ovSelo').textContent = s.ch;
+    $('ovSelo').className = 'selo-g';
+    if(id === 'coelho'){
+      ov.classList.add('jackpot','grande');
+      $('ovTitulo').textContent = '玉兔 · COELHO DE JADE';
+      $('ovNome').innerHTML = 'A lua está cheia. Você ganhou <b>' + s.premio + '</b>!';
+      sireneMacau(); fanfarraJackpot(); chuvaDeMoedas(70);
+      luaPct = 0.12; jackpotNaTela = true;
+    } else if(GRANDES.includes(id)){
+      ov.classList.add('grande');
+      $('ovTitulo').textContent = s.nome;
+      $('ovNome').innerHTML = 'GRANDE PRÊMIO! Você ganhou <b>' + s.premio + '</b>!';
+      sireneMacau(); chuvaDeMoedas(45);
+    } else {
+      $('ovTitulo').textContent = s.nome;
+      $('ovNome').innerHTML = 'Você ganhou <b>' + s.premio + '</b>';
+      arpejoRevelacao();
+    }
+    if(!teste) logGiro('premio', id, state.valores[id]||0);
+  }
+  if(id !== 'coelho') luaPct = Math.min(1, luaPct + 0.06);
+  $('fase').style.transform = 'translateX(-' + Math.round((1-luaPct)*100) + '%)';
+  ov.classList.add('aberto');
+  salvarEstado(); publicarEspelho(); atualizarUI();
+
+  // REGRA DE TELA: 5s e sai sozinho; jackpot 30s (ou até apertarem GIRAR)
+  clearTimeout(fecharTimer);
+  fecharTimer = setTimeout(fecharResultado, jackpotNaTela ? TEMPO_JACKPOT : TEMPO_RESULTADO);
+}
+function fixarResultado(){
+  // mantém na janela exatamente o que cravou (as 3 últimas células de cada rolo),
+  // só enxugando a tira longa do giro — fiel ao prêmio que saiu
+  strips.forEach(s=>{
+    const cels = s.children;
+    if(cels.length >= 3){
+      s.innerHTML = cels[cels.length-3].outerHTML + cels[cels.length-2].outerHTML + cels[cels.length-1].outerHTML;
+    }
+    s.style.transform = 'translateY(0)';
+  });
+}
+function fecharResultado(proximoGiro){
+  clearTimeout(fecharTimer);
+  $('ov').classList.remove('aberto','jackpot','eclipse','grande');
+  fixarResultado();
+  jackpotNaTela = false;
+  ocupado = false; $('btn').disabled = false;
+  document.querySelectorAll('.teste button').forEach(b=> b.disabled = false);
+  if(proximoGiro) girar();
+}
+function atualizarUI(){
+  $('contador').textContent = 'Giros: ' + state.spinsDia;
+}
+// GIRAR (Espaço ou clique) com jackpot na tela: fecha e já gira
+document.addEventListener('keydown', e=>{
+  if(e.code !== 'Space' && e.code !== 'Enter') return;
+  e.preventDefault();
+  if($('ov').classList.contains('aberto')){
+    if(jackpotNaTela) fecharResultado(true);
+    return; // prêmio comum: espera os 5s
+  }
+  girar();
+});
+$('ov').addEventListener('click', ()=>{ if(jackpotNaTela) fecharResultado(true); });
+
+/* ===== boot ===== */
+if(new URLSearchParams(location.search).get('teste') === '1'){
+  document.body.classList.add('modo-teste');
+}
+carregarEstado();
+montarInicio();
+atualizarUI();
+ligarFirebase();
+setInterval(()=>{ if(!ocupado && state.dia !== diaChave()){ novoDia(); atualizarUI(); publicarEspelho(); } }, 60000);
+</script>
+</body>
+</html>
